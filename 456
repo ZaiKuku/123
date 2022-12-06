@@ -1,0 +1,367 @@
+#include <iostream>
+#include <string>
+#include <cstring>
+using namespace std;
+
+class MyString
+{
+private:
+    string chars;
+    // char *_text;
+    // size_t sizeOfText;
+public:
+    string var_Name;
+    MyString();
+    // MyString(char *c);
+    MyString(string s);
+    //~MyString();
+    // MyString(const MyString &m);
+
+    char &operator[](int i);                      // index
+    const MyString operator+(const MyString &s2); // +
+    const MyString operator*(int j);              // *
+    const MyString &operator=(const MyString &m); // =
+    const MyString &operator=(const string &s);
+    const MyString &operator=(char *c);
+    const string getStr();
+    void replace(int locat, const char *content, MyString &object);
+};
+
+// constructor
+MyString::MyString()
+{
+    chars = "";
+}
+MyString::MyString(string s)
+{
+    chars = s;
+}
+/*
+MyString::MyString(char *c)
+{
+    sizeOfText = strlen(c) + 1;
+    _text = new char[sizeOfText];
+}
+*/
+/*
+// destructor
+MyString::~MyString()
+{
+    delete[] _text;
+}
+*/
+// index
+char &MyString::operator[](int i)
+{
+    if (i < 0 || i >= 50)
+        exit(1);
+    return chars[i];
+}
+// add+
+const MyString MyString::operator+(const MyString &s2)
+{
+    MyString sum;
+    sum.chars = this->chars + s2.chars;
+    return sum;
+}
+// multi*
+const MyString MyString::operator*(int j)
+{
+    MyString multi;
+    for (int i = 0; i < j; i++)
+        multi.chars += this->chars;
+    return multi;
+}
+// assign=
+const MyString &MyString::operator=(const MyString &m)
+{
+    this->chars = m.chars;
+    this->var_Name = m.var_Name;
+    return *this;
+}
+const MyString &MyString::operator=(const string &s)
+{
+    this->chars = s;
+    return *this;
+}
+/*
+const MyString &MyString::operator=(char *c)
+{
+    this->_text = c;
+    return *this;
+}
+*/
+// get chars
+const string MyString::getStr() { return chars; }
+
+// replcae
+void MyString::replace(int locat, const char *content, MyString &object)
+{
+    object.chars[locat] = *content;
+}
+
+// function
+MyString declare(string tok[][3], int i, MyString object[]);
+void assignString(string tok[][3], int i, MyString object[]);
+void assignObject(string tok[][3], int i, MyString object[]);
+void print(string tok[][3], int i, MyString object[]);
+
+// global variable
+MyString object[100]; // [code] 裝宣告完的物件
+int declare_count = 0;
+
+int main()
+{
+    int n;
+    cin >> n;
+    cin.ignore();
+    // 輸入字串並分割 存入tok
+    string tok[100][3]; // 命令[0] 編號[1] 內容[2]
+    for (int i = 0; i < n; i++)
+    {
+        int j = 0;
+        while (cin >> tok[i][j])
+        {
+            if (cin.get() == '\n')
+                break;
+            j++;
+        }
+        if (j > 2 && tok[i][2][0] == '"') // 若雙引號中間有空白 把它串起來(空白記得補)
+        {
+            for (int m = 3; m <= j; m++)
+                tok[i][2] = tok[i][2] + " " + tok[i][m];
+        }
+    }
+
+    // 透過每行第一個字串決定需使用的函式
+    for (int i = 0; i < n; i++)
+    {
+        if (tok[i][0].compare("declare") == 0)
+        {
+            object[declare_count - 1] = declare(tok, i, object);
+        }
+        if (tok[i][0].compare("assignString") == 0)
+        {
+            assignString(tok, i, object);
+        }
+        if (tok[i][0].compare("assignObject") == 0)
+        {
+            assignObject(tok, i, object);
+        }
+        if (tok[i][0].compare("print") == 0) // print
+        {
+            print(tok, i, object);
+        }
+    }
+    /*
+    cout << "var:" << object[2].var_Name << endl;
+    cout << "str:" << object[2].getStr();
+    */
+    return 0;
+}
+
+MyString declare(string tok[][3], int i, MyString object[]) // 宣告新的物件(變數)
+{
+    MyString k;
+    if (tok[i][2][0] == '"') // 沒有運算的物件
+    {
+        tok[i][2] = tok[i][2].substr(1, tok[i][2].size() - 2); // 去掉頭尾的雙引號""
+        k = MyString(tok[i][2]);                               // 建立物件
+        k.var_Name = tok[i][1];
+        declare_count++;
+    }
+    else if (tok[i][2].find('+') != string::npos) // 有加號
+    {
+        string temp_string = tok[i][2];
+        string tok_name[100];
+        int count = 0;                                // 加法運算個數
+        while (temp_string.find('+') != string::npos) // 找出加法的物件名稱 存在tok_name 之後依序加起來
+        {
+            tok_name[count] = temp_string.substr(0, temp_string.find('+')); // 第一個"+"前是物件名字
+            temp_string.erase(0, temp_string.find('+') + 1);                // 把第一個加號前的內容刪除
+            count++;
+        }
+        tok_name[count] = temp_string;
+        // cout << tok_name[0] << "+" << tok_name[1];
+        for (int i = 0; i < count + 1; i++)
+            for (int j = 0; j < declare_count; j++)
+                if (tok_name[i].compare(object[j].var_Name) == 0)
+                {
+                    k = k + object[j];
+                }
+        k.var_Name = tok[i][1];
+        declare_count++;
+    }
+    else if (tok[i][2].find('*') != string::npos) // 有乘號
+    {
+        string temp_string = tok[i][2];
+        string tok_name[2]; // 指定物件[0] 倍率[1]
+        int count = 0;
+        while (temp_string.find('*') != string::npos) // 找出加法的物件名稱 存在tok_name 之後依序加起來
+        {
+            tok_name[count] = temp_string.substr(0, temp_string.find('*')); // 第一個"*"前是物件名字
+            temp_string.erase(0, temp_string.find('*') + 1);                // 把第一個加號前的內容刪除
+            count++;
+        }
+        tok_name[count] = temp_string;
+        int multi_num = stoi(tok_name[1]);
+        for (int j = 0; j < declare_count; j++)
+            if (tok_name[0].compare(object[j].var_Name) == 0)
+            {
+                k = object[j] * multi_num;
+            }
+        k.var_Name = tok[i][1];
+        declare_count++;
+    }
+    else // 宣告並指派
+    {
+        for (int j = 0; j < declare_count; j++) // 找出指派的物件
+        {
+            if (tok[i][2].compare(object[j].var_Name) == 0)
+            {
+                k = object[j];
+            }
+        }
+        k.var_Name = tok[i][1];
+        declare_count++;
+    }
+    return k;
+}
+void assignString(string tok[][3], int i, MyString object[])
+{
+    string tok_name;
+    tok[i][2] = tok[i][2].substr(1, tok[i][2].size() - 2); // 去掉頭尾的雙引號""
+    if (tok[i][1].find('[') != string::npos)               // 指令有index (字串長度1)
+    {
+        string temp_string = tok[i][1];
+        tok_name = temp_string.substr(0, temp_string.find('['));                                  // 物件名稱
+        int tok_num = stoi(temp_string.substr(temp_string.find('[') + 1, temp_string.find(']'))); // index
+        for (int j = 0; j < declare_count; j++)
+        {
+            if (tok_name.compare(object[j].var_Name) == 0)
+            {
+                object[j].replace(tok_num, tok[i][2].c_str(), object[j]);
+            }
+        }
+    }
+    else
+    {
+        MyString k;
+        for (int j = 0; j < declare_count; j++)
+        {
+            if (tok[i][1].compare(object[j].var_Name) == 0)
+            {
+                k = MyString(tok[i][2]);
+                k.var_Name = tok[i][1];
+                object[j] = k;
+            }
+        }
+    }
+}
+
+void assignObject(string tok[][3], int i, MyString object[])
+{
+    MyString k;
+    // 有加號
+    if (tok[i][2].find('+') != string::npos)
+    {
+        string temp_string = tok[i][2];
+        string tok_name[100];
+        int count = 0;                                // 加法運算個數
+        while (temp_string.find('+') != string::npos) // 找出加法的物件名稱 存在tok_name 之後依序加起來
+        {
+            tok_name[count] = temp_string.substr(0, temp_string.find('+')); // 第一個"+"前是物件名字
+            temp_string.erase(0, temp_string.find('+') + 1);                // 把第一個加號前的內容刪除
+            count++;
+        }
+        tok_name[count] = temp_string;
+        for (int i = 0; i < count + 1; i++)
+            for (int j = 0; j < declare_count; j++)
+                if (tok_name[i].compare(object[j].var_Name) == 0)
+                {
+                    k = k + object[j];
+                }
+        for (int j = 0; j < declare_count; j++) // 找出被指派的物件
+        {
+            if (tok[i][1].compare(object[j].var_Name) == 0)
+            {
+                k.var_Name = tok[i][1];
+                object[j] = k;
+            }
+        }
+    }
+    // 有乘號
+    else if (tok[i][2].find('*') != string::npos)
+    {
+        string temp_string = tok[i][2];
+        string tok_name[2]; // 指定物件[0] 倍率[1]
+        int count = 0;
+        while (temp_string.find('*') != string::npos) // 找出加法的物件名稱 存在tok_name 之後依序加起來
+        {
+            tok_name[count] = temp_string.substr(0, temp_string.find('*')); // 第一個"*"前是物件名字
+            temp_string.erase(0, temp_string.find('*') + 1);                // 把第一個加號前的內容刪除
+            count++;
+        }
+        tok_name[count] = temp_string;
+        int multi_num = stoi(tok_name[1]);
+        for (int j = 0; j < declare_count; j++)
+            if (tok_name[0].compare(object[j].var_Name) == 0)
+            {
+                k = object[j] * multi_num;
+            }
+        for (int j = 0; j < declare_count; j++) // 找出被指派的物件
+        {
+            if (tok[i][1].compare(object[j].var_Name) == 0)
+            {
+                k.var_Name = tok[i][1];
+                object[j] = k;
+            }
+        }
+    }
+    // 物件指派 沒有運算
+    else
+    {
+        for (int j = 0; j < declare_count; j++) // 找出指派的物件
+        {
+            if (tok[i][2].compare(object[j].var_Name) == 0)
+            {
+                k = object[j];
+            }
+        }
+        for (int j = 0; j < declare_count; j++) // 找出被指派的物件
+        {
+            if (tok[i][1].compare(object[j].var_Name) == 0)
+            {
+                k.var_Name = tok[i][1];
+                object[j] = k;
+            }
+        }
+    }
+}
+void print(string tok[][3], int i, MyString object[])
+{
+    string tok_name;
+    if (tok[i][1].find('[') != string::npos) // 指令有index
+    {
+        string temp_string = tok[i][1];
+        tok_name = temp_string.substr(0, temp_string.find('['));                                  // 物件名稱
+        int tok_num = stoi(temp_string.substr(temp_string.find('[') + 1, temp_string.find(']'))); // index
+        for (int j = 0; j < declare_count; j++)                                                   // 找出被印出的物件字元
+        {
+            if (tok_name.compare(object[j].var_Name) == 0)
+            {
+                cout << object[j][tok_num] << endl;
+            }
+        }
+    }
+    else
+    {
+        for (int j = 0; j < declare_count; j++) // 找出被印出的物件
+        {
+            if (tok[i][1].compare(object[j].var_Name) == 0)
+            {
+                cout << object[j].getStr() << endl;
+            }
+        }
+    }
+}
