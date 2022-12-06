@@ -1,0 +1,356 @@
+#include <iostream>
+#include <string>
+#include <cstring>
+using namespace std;
+
+class MyString
+{
+private:
+    string chars;
+
+public:
+    string var_Name;
+    MyString()
+    {
+        chars = "";
+    }
+    MyString(string s)
+    {
+        chars = s;
+    }
+
+    const MyString operator+(const MyString &s2) // 加法
+    {
+        MyString sum;
+        sum.chars = this->chars + s2.chars;
+        return sum;
+    }
+    const MyString operator*(int j) // 乘法
+    {
+        MyString multi;
+        for (int i = 0; i < j; i++) // 用連加處理
+            multi.chars += chars;
+        return multi;
+    }
+    void operator=(const MyString &m) // = MyString
+    {
+        var_Name = m.var_Name;
+        chars = m.chars;
+    }
+    void operator=(const string &s) // = string
+    {
+        chars = s;
+    }
+    void operator=(const char *c) //  = char
+    {
+        chars = c;
+    }
+    const string getStr() // 回傳 chars
+    {
+        return chars;
+    }
+    void replace(int i, char c) // 變動chars
+    {
+        chars[i] = c;
+    }
+    const MyString operator-(const MyString &s) // 減法
+    {
+        MyString ss(*this);
+        while (chars.find(s.chars) != string::npos) // 按照減法規則重複確認是否刪光所有應被減的項目
+        {
+            chars = chars.substr(0, chars.find(s.chars)) + chars.substr(chars.find(s.chars) + s.chars.size(), chars.size());
+        }
+        ss.chars = chars;
+        return ss;
+    }
+};
+
+MyString object[100];
+int declare_count = 0; // 用來算總共宣告了幾個MyString
+
+// 命令的function
+void declare(string name, string act);
+void assignObject(string name, string act);
+void assignString(string name, string act);
+void print(string name);
+void subtractObject(string name, string act);
+
+int main()
+{
+    int n;
+    cin >> n;
+    cin.ignore();
+    char c[10000];
+    string s, name, act;
+
+    for (int i = 0; i < n; i++)
+    {
+        int j = 0;
+        cin.getline(c, 10000);
+        s = c;
+        if (c[0] == 'd') // 如果是declare
+        {
+
+            s.erase(0, s.find(' ') + 1);     // 清除該命令中的命令部分
+            name = s.substr(0, s.find(' ')); // name 是要建立的物件名稱
+            s.erase(0, s.find(' ') + 1);
+            act = s; // act是名稱後面的行為
+            declare(name, act);
+
+            declare_count += 1;
+        }
+        if (c[0] == 'a' and c[6] == 'S') // 如果是assignString
+        {
+            s.erase(0, s.find(' ') + 1);
+            name = s.substr(0, s.find(' '));
+            s.erase(0, s.find(' ') + 1);
+            act = s;
+            assignString(name, act);
+        }
+        if (c[0] == 'a' and c[6] == 'O') // 如果是assignObject
+        {
+            s.erase(0, s.find(' ') + 1);
+            name = s.substr(0, s.find(' '));
+            s.erase(0, s.find(' ') + 1);
+            act = s;
+            assignObject(name, act);
+        }
+        if (c[0] == 'p') // 如果是print
+        {
+            s.erase(0, s.find(' ') + 1);
+            print(s);
+        }
+        if (c[0] == 's') // 如果是subtractObject
+        {
+            s.erase(0, s.find(' ') + 1);
+            name = s.substr(0, s.find(' '));
+            s.erase(0, s.find(' ') + 1);
+            act = s;
+            subtractObject(name, act);
+        }
+    }
+
+    return 0;
+}
+
+void declare(string name, string act) // 宣告物件
+{
+    MyString out;
+
+    if (act[0] == '"') // 如果是字串
+    {
+        act.erase(0, 1);
+        act.pop_back(); // 刪除""
+        out = act;
+    }
+    else if (act.find('+') != string::npos) // 如果有加號
+    {
+        string temp_string = act;
+        string objs;
+
+        while (temp_string.find('+') != string::npos) // 重複搜尋加法符號
+        {
+            objs = temp_string.substr(0, temp_string.find('+')); // obj用來存加法前的變數名稱
+
+            for (int j = 0; j < declare_count + 1; j++)
+            {
+                if (objs == object[j].var_Name)
+                {
+                    out = out + object[j]; // 找到該名稱物件就加上字串
+                }
+            }
+
+            temp_string.erase(0, temp_string.find('+') + 1); // 把加號前刪除
+        }
+        for (int j = 0; j < declare_count + 1; j++) // 把最後一項
+        {
+            if (temp_string == object[j].var_Name)
+            {
+                out = out + object[j];
+            }
+        }
+    }
+    else if (act.find('*') != string::npos) // 乘法與加法大同小異
+    {
+        string temp_string = act;
+        string objs;
+        int count = 0;
+        int times; // 用來存乘幾倍
+
+        objs = temp_string.substr(0, temp_string.find('*')); // 第一個"*"前是物件名字
+        temp_string.erase(0, temp_string.find('*') + 1);
+        times = stoi(temp_string);
+
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (objs == object[j].var_Name)
+            {
+                out = object[j] * times;
+            }
+        }
+    }
+    else // 單純指派物件
+    {
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (act == object[j].var_Name)
+            {
+                out = object[j];
+            }
+        }
+    }
+    out.var_Name = name;
+    object[declare_count] = out;
+}
+void assignString(string name, string act)
+{
+    string name2;
+    int num;
+    act.erase(0, 1);
+    act.pop_back();
+    if (name.find('[') != string::npos) // 如果有指定位置, 像 s1[0]
+    {
+
+        name2 = name.substr(0, name.find('['));                      // name2 是單純的變數名稱
+        num = stoi(name.substr(name.find('[') + 1, name.find(']'))); // num是指定位置的index
+
+        for (int i = 0; i < declare_count + 1; i++)
+        {
+            if (object[i].var_Name == name2)
+            {
+                object[i].replace(num, act[0]); // 修改chars
+            }
+        }
+    }
+    else // 不指定位置, 修改整個chars
+    {
+        MyString out;
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (name == object[j].var_Name)
+            {
+                out = MyString(act);
+                out.var_Name = name;
+                object[j] = out;
+            }
+        }
+    }
+}
+
+void assignObject(string name, string act)
+{
+    MyString out;
+
+    if (act.find('+') != string::npos) // 加法, 基本同declare 部分的加法
+    {
+        string temp_string = act;
+        string objs;
+
+        while (temp_string.find('+') != string::npos)
+        {
+            objs = temp_string.substr(0, temp_string.find('+'));
+            for (int j = 0; j < declare_count + 1; j++)
+            {
+                if (objs == object[j].var_Name)
+                {
+                    out = out + object[j];
+                }
+            }
+
+            temp_string.erase(0, temp_string.find('+') + 1);
+        }
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (temp_string == object[j].var_Name)
+            {
+                out = out + object[j];
+            }
+        }
+    }
+    else if (act.find('*') != string::npos) // 乘法
+    {
+        string temp_string = act;
+        string objs;
+        int count = 0;
+        int times;
+
+        objs = temp_string.substr(0, temp_string.find('*'));
+        temp_string.erase(0, temp_string.find('*') + 1);
+        times = stoi(temp_string);
+
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (objs == object[j].var_Name)
+            {
+                out = object[j] * times;
+            }
+        }
+    }
+    else // 直接指派
+    {
+        for (int j = 0; j < declare_count + 1; j++)
+        {
+            if (act == object[j].var_Name)
+            {
+                out = object[j];
+            }
+        }
+    }
+    for (int j = 0; j < declare_count + 1; j++)
+    {
+        if (name == object[j].var_Name)
+        {
+            object[j] = out;
+            object[j].var_Name = name;
+        }
+    }
+}
+
+void print(string name)
+{
+    string s;
+    if (name.find('[') != string::npos) // 如果是指定輸出string 的位置
+    {
+        for (int j = 0; j < declare_count + 1; ++j)
+        {
+            if (object[j].var_Name == name.substr(0, name.find('['))) // 找到該物件
+            {
+                s = object[j].getStr();
+                cout << s[stoi(name.substr(name.find('[') + 1, name.find(']')))] << endl; // 輸出指定位置
+
+                break;
+            }
+        }
+    }
+    else // 不指定輸出string 的位置
+    {
+        for (int k = 0; k < declare_count + 1; ++k) // 找到物件就輸出
+        {
+            if (object[k].var_Name == name)
+            {
+                s = object[k].getStr();
+                cout << s << endl;
+
+                break;
+            }
+        }
+    }
+}
+
+void subtractObject(string name, string act) // 減法
+{
+
+    for (int k = 0; k < declare_count + 1; k++) // 找到兩個要相減的物件進行減法
+    {
+        if (name == object[k].var_Name)
+        {
+            for (int l = 0; l < declare_count + 1; l++)
+            {
+                if (act == object[l].var_Name)
+                {
+                    object[k] = object[k] - object[l];
+                }
+            }
+        }
+    }
+}
